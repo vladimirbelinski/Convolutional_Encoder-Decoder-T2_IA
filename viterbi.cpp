@@ -50,20 +50,31 @@ string decode(string bit_sequence){
   string decoded = "";    
   string prefix = bit_sequence.substr(0,2);
   
-  /*step 1*/
+  /*step 1.*/
   int err00 = diff(prefix,"00"), err10 = diff(prefix,"11");  
   decoded += err00 < err10 ? '0': '1';
   
-  /*step 2*/
+  /*step 2.*/
   prefix = bit_sequence.substr(2,2);    
-  vector<int> diffs({diff(prefix,"00")+err00,diff(prefix,"11")+err00,diff(prefix,"10")+err10,diff(prefix,"01")+err10});    
+  vector<int> diffs({diff(prefix,"00")+err00,diff(prefix,"11")+err00,diff(prefix,"10")+err10,diff(prefix,"01")+err10});      
   int lowest_error_index = lowest_error(diffs);   
-  decoded += (lowest_error_index & 1) + '0';
-  
-  //decode general case.
+  decoded += (lowest_error_index & 1) + '0';  
+  //cout << bit_sequence << endl;
+  /*General step.*/
   for(int i = 4; i < (int)bit_sequence.size(); i += 2){    
+    prefix = bit_sequence.substr(i,2);      
+    vector<int> cur_diffs(4);        
+    cur_diffs[0] = min(diff(prefix,"00")+diffs[0],diff(prefix,"11")+diffs[3]);
+    cur_diffs[1] = min(diff(prefix,"01")+diffs[2],diff(prefix,"10")+diffs[1]);    
+    cur_diffs[2] = min(diff(prefix,"11")+diffs[0],diff(prefix,"00")+diffs[3]);
+    cur_diffs[3] = min(diff(prefix,"10")+diffs[2],diff(prefix,"01")+diffs[1]);    
+    int lowest_error_index = lowest_error(cur_diffs); 
+    cout << lowest_error_index << endl;      
+    decoded += (lowest_error_index & 1) + '0';        
+    for(int k = 0; k < 4; k++) diffs[k] = cur_diffs[k];      
   }
-  return decoded;
+  cout << decoded << endl;
+  return decoded.substr(0,decoded.size()-2);
 }
 
 int main(void){
@@ -96,6 +107,8 @@ int main(void){
   encoded = encode(bit_sequence);
   
   decoded = decode(encoded);
-  cout << encoded << endl;
+  cout << bit_sequence << endl;
+  //cout << encoded << endl;
+  cout << decoded << endl;
   return 0;
 }
