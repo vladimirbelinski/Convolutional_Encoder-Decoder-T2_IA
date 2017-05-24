@@ -31,9 +31,38 @@ string encode(string bit_sequence){
   return encoded;
 }
 
+int diff(string str1, string str2){  
+  return (str1[0] != str2[0]) + (str1[1] != str2[1]);
+}
+
+int lowest_error(vector<int> &vi){
+  int idx = 0, mn = vi[0];
+  for(int i = 1; i < (int)vi.size(); i++){
+    if(vi[i] < mn){
+      mn = vi[i];
+      idx = i;
+    }
+  }
+  return idx;
+}
+
 string decode(string bit_sequence){
-  string decoded = "";
-  //context.push_back(Context({"00","0"}));
+  string decoded = "";    
+  string prefix = bit_sequence.substr(0,2);
+  
+  /*step 1*/
+  int err00 = diff(prefix,"00"), err10 = diff(prefix,"11");  
+  decoded += err00 < err10 ? '0': '1';
+  
+  /*step 2*/
+  prefix = bit_sequence.substr(2,2);    
+  vector<int> diffs({diff(prefix,"00")+err00,diff(prefix,"11")+err00,diff(prefix,"10")+err10,diff(prefix,"01")+err10});    
+  int lowest_error_index = lowest_error(diffs);   
+  decoded += (lowest_error_index & 1) + '0';
+  
+  //decode general case.
+  for(int i = 4; i < (int)bit_sequence.size(); i += 2){    
+  }
   return decoded;
 }
 
