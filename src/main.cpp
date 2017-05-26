@@ -89,6 +89,12 @@ string decode(string bit_sequence){
   return decoded.substr(0,decoded.size()-2);
 }
 
+int comp(string a,string b){
+  int total_diff = abs(a.size()-b.size());
+  for(int i = 0; i < min((int)a.size(),(int)b.size()); i++) total_diff = (a[i] != b[i]);
+  return total_diff;
+}
+
 int main(void){
   int err_percentage;
   string bit_sequence, encoded, decoded;
@@ -121,6 +127,7 @@ int main(void){
   decoded = decode(encoded);
   cout << "Initial sequence: " << bit_sequence << endl;
   //cout << encoded << endl;
-  cout << "Decoded sequence: " << decoded << endl;
+  cout << "Decoded sequence: " << decoded << endl;  
+  cout << "Difference between input and output: " << comp(bit_sequence,decoded) << endl;
   return 0;
 }
