@@ -29,12 +29,18 @@ struct Context{
 };
 
 vector<Context> context;
+
 /*Tabela de emissão.*/
 map<string, map<char,string> > emitted;
+
 /*Tabela de transição.*/
 map<string, map<char,string> > next_state;
+
 /*Gerador de números aleatórios para desempate e ruído.*/
-knuth_b generator;
+default_random_engine generator = default_random_engine(chrono::system_clock::now().time_since_epoch().count());  
+
+/*Distribuições uniformes.*/
+uniform_int_distribution<int> dices[4];
 
 /*Codificação da entrada.*/
 string encode(string bit_sequence){
@@ -60,21 +66,16 @@ int diff(string str1, string str2){
 int lowest_error(vector<int> &vi){
   vector<int> ties;
   ties.push_back(0);
-  int idx = 0, mn = vi[0];    
   for(int i = 1; i < (int)vi.size(); i++){
-    if(vi[i] < mn){
-      mn = vi[i];
-      idx = i;
+    if(vi[i] < vi[ties[0]]){      
       ties.clear();
-      ties.push_back(idx);
+      ties.push_back(i);
     }
-    else if(vi[i] == mn) ties.push_back(i);    
+    else if(vi[i] == vi[ties[0]]) ties.push_back(i);    
   }
-  if(ties.size() == 1) return idx;
-  uniform_int_distribution<int> distribution(0,((int)ties.size())-1);
-  auto dice = bind(distribution, generator);
-  int r = dice();
-  return ties[r];
+  return ties[0];
+  //if(ties.size() == 1) return ties[0];      
+  //return ties[dices[ties.size()-1](generator)];
 }
 
 /*Decodificação.*/
@@ -115,25 +116,26 @@ int comp(string a,string b){
 }
 
 /*Adição de ruído com distribuiçao uniforme na entrada codificada.*/
-string noise(string encoded_sequence,int err_percentage){        
+string noise(string encoded_sequence,int err_percentage){   
   list<int> check;
   for(int i = 0; i < (int)encoded_sequence.size(); i++) check.push_back(i);
   
   /*calculo da quantidade de bits(utilizando arredondamento(inteiro mais próximo))*/
-  int quantity = ((double)(err_percentage*encoded_sequence.size())/100.) + 0.5;   
-  while(quantity--){
-    uniform_int_distribution<int> distribution(0,((int)check.size())-1);
-    auto dice = bind(distribution, generator);
+  int quantity = ((double)(err_percentage*encoded_sequence.size())/100.) + 0.5;     
+  while(quantity--){        
     auto it = check.begin();
-    advance(it,dice());
+    advance(it,rand()%check.size());
     encoded_sequence[*it] = (encoded_sequence[*it] == '0') ? '1' : '0';
     check.erase(it);
   }
   return encoded_sequence;
 }
 
-int main(void){
-  generator = knuth_b(chrono::system_clock::now().time_since_epoch().count());
+int main(void){     
+  srand(time(NULL)); 
+  for(int i = 0; i < 4; i++)
+    dices[i] = uniform_int_distribution<int> (0,i);
+  
   int err_percentage;
   string bit_sequence, encoded_sequence, decoded_sequence, disturbed_sequence;
   cin >> err_percentage;
@@ -161,7 +163,18 @@ int main(void){
   next_state["10"]['1'] = "11";
   next_state["11"]['0'] = "01";
   next_state["11"]['1'] = "11";
-    
+  
+  encoded_sequence = encode(bit_sequence);
+  vector<int> zeros(101,0);
+  for(int i = 0; i <= 10; i++){          
+    for(int j = 0; j < 100000; j++){        
+      disturbed_sequence = noise(encoded_sequence,i);  
+      decoded_sequence = decode(disturbed_sequence);
+      zeros[i] += (comp(bit_sequence,decoded_sequence) == 0);           
+    }
+    cout << i << " " << zeros[i]/1000.0 << "%" << endl;
+  }
+  /*  
   encoded_sequence = encode(bit_sequence);
   disturbed_sequence = noise(encoded_sequence,err_percentage);  
   decoded_sequence = decode(disturbed_sequence);
@@ -169,6 +182,6 @@ int main(void){
   cout << "Encoded sequence: " << encoded_sequence << endl;
   cout << "Disturbed sequence: " << disturbed_sequence << endl; 
   cout << "Decoded sequence: " << decoded_sequence << endl;  
-  cout << "Difference between input and output: " << comp(bit_sequence,decoded_sequence) << endl;
+  cout << "Difference between input and output: " << comp(bit_sequence,decoded_sequence) << endl;*/
   return 0;
 }
