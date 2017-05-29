@@ -46,14 +46,24 @@ int diff(string str1, string str2){
 }
 
 int lowest_error(vector<int> &vi){
-  int idx = 0, mn = vi[0];
+  vector<int> ties;
+  ties.push_back(0);
+  int idx = 0, mn = vi[0];    
   for(int i = 1; i < (int)vi.size(); i++){
     if(vi[i] < mn){
       mn = vi[i];
       idx = i;
+      ties.clear();
+      ties.push_back(idx);
     }
+    else if(vi[i] == mn) ties.push_back(i);    
   }
-  return idx;
+  if(ties.size() == 1) return idx;
+  knuth_b generator(chrono::system_clock::now().time_since_epoch().count());
+  uniform_int_distribution<int> distribution(0,((int)ties.size())-1);
+  auto dice = bind(distribution, generator);
+  int r = dice();
+  return ties[r];
 }
 
 string decode(string bit_sequence){
