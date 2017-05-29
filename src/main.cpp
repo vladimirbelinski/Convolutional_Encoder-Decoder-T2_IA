@@ -12,6 +12,7 @@
 
 using namespace std;
 
+/* Inicializa tabela de transições e emissões. */
 void init_table(map<string, map<char,string> > &table){
   table["00"] = map<char,string>();
   table["01"] = map<char,string>();
@@ -19,6 +20,7 @@ void init_table(map<string, map<char,string> > &table){
   table["11"] = map<char,string>();
 }
 
+/*Estado do algoritmo em um determinado momento.*/
 struct Context{
   string initial_state;
   char input;
@@ -27,10 +29,14 @@ struct Context{
 };
 
 vector<Context> context;
+/*Tabela de emissão.*/
 map<string, map<char,string> > emitted;
+/*Tabela de transição.*/
 map<string, map<char,string> > next_state;
+/*Gerador de números aleatórios para desempate e ruído.*/
 knuth_b generator;
 
+/*Codificação da entrada.*/
 string encode(string bit_sequence){
   string encoded = "";
   bit_sequence += "00";
@@ -46,6 +52,11 @@ int diff(string str1, string str2){
   return (str1[0] != str2[0]) + (str1[1] != str2[1]);
 }
 
+/*
+  Função utilizada para encontrar o indice do menor erro.
+  Caso exista mais de um índice com o menor erro é tomado
+  um índice de forma aleatória dentre os índices de menor erro.
+*/
 int lowest_error(vector<int> &vi){
   vector<int> ties;
   ties.push_back(0);
@@ -66,6 +77,7 @@ int lowest_error(vector<int> &vi){
   return ties[r];
 }
 
+/*Decodificação.*/
 string decode(string bit_sequence){
   string decoded = "";
   string prefix = bit_sequence.substr(0,2);
@@ -78,8 +90,7 @@ string decode(string bit_sequence){
   prefix = bit_sequence.substr(2,2);
   vector<int> diffs({diff(prefix,"00")+err00,diff(prefix,"11")+err00,diff(prefix,"10")+err10,diff(prefix,"01")+err10});
   int lowest_error_index = lowest_error(diffs);
-  decoded += (lowest_error_index & 1) + '0';
-  // cout << bit_sequence << endl;
+  decoded += (lowest_error_index & 1) + '0';  
 
   /*General step.*/
   /*[index]=state: [0]=00, [1]=10, [2]=01, [3]=11*/
@@ -90,12 +101,10 @@ string decode(string bit_sequence){
     cur_diffs[1] = min(diff(prefix,"11")+diffs[0],diff(prefix,"00")+diffs[2]);
     cur_diffs[2] = min(diff(prefix,"10")+diffs[1],diff(prefix,"01")+diffs[3]);
     cur_diffs[3] = min(diff(prefix,"01")+diffs[1],diff(prefix,"10")+diffs[3]);
-    int lowest_error_index = lowest_error(cur_diffs);
-    // cout << lowest_error_index << endl;
+    int lowest_error_index = lowest_error(cur_diffs);    
     decoded += (lowest_error_index & 1) + '0';
     for(int k = 0; k < 4; k++) diffs[k] = cur_diffs[k];
   }
-  // cout << decoded << endl;
   return decoded.substr(0,decoded.size()-2);
 }
 
@@ -105,21 +114,22 @@ int comp(string a,string b){
   return total_diff;
 }
 
-string noise(string bit_sequence,int err_percentage){        
+/*Adição de ruído com distribuiçao uniforme na entrada codificada.*/
+string noise(string encoded_sequence,int err_percentage){        
   list<int> check;
-  for(int i = 0; i < (int)bit_sequence.size(); i++) check.push_back(i);
+  for(int i = 0; i < (int)encoded_sequence.size(); i++) check.push_back(i);
   
   /*calculo da quantidade de bits(utilizando arredondamento(inteiro mais próximo))*/
-  int quantity = ((double)(err_percentage*bit_sequence.size())/100.) + 0.5;   
+  int quantity = ((double)(err_percentage*encoded_sequence.size())/100.) + 0.5;   
   while(quantity--){
     uniform_int_distribution<int> distribution(0,((int)check.size())-1);
     auto dice = bind(distribution, generator);
     auto it = check.begin();
     advance(it,dice());
-    bit_sequence[*it] = (bit_sequence[*it] == '0') ? '1' : '0';
+    encoded_sequence[*it] = (encoded_sequence[*it] == '0') ? '1' : '0';
     check.erase(it);
   }
-  return bit_sequence;
+  return encoded_sequence;
 }
 
 int main(void){
@@ -131,7 +141,8 @@ int main(void){
 
   init_table(emitted);
   init_table(next_state);
-
+  
+  /*Construção da tabela de emissão.*/
   emitted["00"]['0'] = "00";
   emitted["00"]['1'] = "11";
   emitted["01"]['0'] = "11";
@@ -141,6 +152,7 @@ int main(void){
   emitted["11"]['0'] = "01";
   emitted["11"]['1'] = "10";
 
+  /*Construção da tabela de transição.*/
   next_state["00"]['0'] = "00";
   next_state["00"]['1'] = "10";
   next_state["01"]['0'] = "00";
