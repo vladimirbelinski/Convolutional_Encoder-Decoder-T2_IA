@@ -29,6 +29,7 @@ struct Context{
 vector<Context> context;
 map<string, map<char,string> > emitted;
 map<string, map<char,string> > next_state;
+knuth_b generator;
 
 string encode(string bit_sequence){
   string encoded = "";
@@ -59,7 +60,6 @@ int lowest_error(vector<int> &vi){
     else if(vi[i] == mn) ties.push_back(i);    
   }
   if(ties.size() == 1) return idx;
-  knuth_b generator(chrono::system_clock::now().time_since_epoch().count());
   uniform_int_distribution<int> distribution(0,((int)ties.size())-1);
   auto dice = bind(distribution, generator);
   int r = dice();
@@ -100,14 +100,32 @@ string decode(string bit_sequence){
 }
 
 int comp(string a,string b){
-  int total_diff = abs(a.size()-b.size());
-  for(int i = 0; i < min((int)a.size(),(int)b.size()); i++) total_diff = (a[i] != b[i]);
+  int total_diff = 0;
+  for(int i = 0; i < (int)a.size(); i++) total_diff += (a[i] != b[i]);
   return total_diff;
 }
 
+string noise(string bit_sequence,int err_percentage){        
+  list<int> check;
+  for(int i = 0; i < (int)bit_sequence.size(); i++) check.push_back(i);
+  
+  /*calculo da quantidade de bits(utilizando arredondamento(inteiro mais próximo))*/
+  int quantity = ((double)(err_percentage*bit_sequence.size())/100.) + 0.5;   
+  while(quantity--){
+    uniform_int_distribution<int> distribution(0,((int)check.size())-1);
+    auto dice = bind(distribution, generator);
+    auto it = check.begin();
+    advance(it,dice());
+    bit_sequence[*it] = (bit_sequence[*it] == '0') ? '1' : '0';
+    check.erase(it);
+  }
+  return bit_sequence;
+}
+
 int main(void){
+  generator = knuth_b(chrono::system_clock::now().time_since_epoch().count());
   int err_percentage;
-  string bit_sequence, encoded, decoded;
+  string bit_sequence, encoded_sequence, decoded_sequence, disturbed_sequence;
   cin >> err_percentage;
   cin >> bit_sequence;
 
@@ -131,13 +149,14 @@ int main(void){
   next_state["10"]['1'] = "11";
   next_state["11"]['0'] = "01";
   next_state["11"]['1'] = "11";
-
-  encoded = encode(bit_sequence);
-
-  decoded = decode(encoded);
+    
+  encoded_sequence = encode(bit_sequence);
+  disturbed_sequence = noise(encoded_sequence,err_percentage);  
+  decoded_sequence = decode(disturbed_sequence);
   cout << "Initial sequence: " << bit_sequence << endl;
-  //cout << encoded << endl;
-  cout << "Decoded sequence: " << decoded << endl;  
-  cout << "Difference between input and output: " << comp(bit_sequence,decoded) << endl;
+  cout << "Encoded sequence: " << encoded_sequence << endl;
+  cout << "Disturbed sequence: " << disturbed_sequence << endl; 
+  cout << "Decoded sequence: " << decoded_sequence << endl;  
+  cout << "Difference between input and output: " << comp(bit_sequence,decoded_sequence) << endl;
   return 0;
 }
