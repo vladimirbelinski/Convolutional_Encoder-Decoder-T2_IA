@@ -12,7 +12,7 @@
 
 using namespace std;
 
-/* Inicializa tabela de transições e emissões. */
+/*Inicialização da tabela de transições e emissões*/
 void init_table(map<string, map<char,string> > &table){
   table["00"] = map<char,string>();
   table["01"] = map<char,string>();
@@ -20,7 +20,7 @@ void init_table(map<string, map<char,string> > &table){
   table["11"] = map<char,string>();
 }
 
-/*Estado do algoritmo em um determinado momento.*/
+/*Estado do algoritmo em um determinado momento*/
 struct Context{
   string initial_state;
   char input;
@@ -30,19 +30,19 @@ struct Context{
 
 vector<Context> context;
 
-/*Tabela de emissão.*/
+/*Tabela de emissões*/
 map<string, map<char,string> > emitted;
 
-/*Tabela de transição.*/
+/*Tabela de transições*/
 map<string, map<char,string> > next_state;
 
-/*Gerador de números aleatórios para desempate e ruído.*/
+/*Gerador de números aleatórios para desempate e ruído*/
 default_random_engine generator = default_random_engine(chrono::system_clock::now().time_since_epoch().count());
 
-/*Distribuições uniformes.*/
+/*Distribuições uniformes*/
 uniform_int_distribution<int> dices[4];
 
-/*Codificação da entrada.*/
+/*Função de codificação da entrada*/
 string encode(string bit_sequence){
   string encoded = "";
   bit_sequence += "00";
@@ -58,11 +58,25 @@ int diff(string str1, string str2){
   return (str1[0] != str2[0]) + (str1[1] != str2[1]);
 }
 
-/*
-  Função utilizada para encontrar o índice do menor erro.
-  Caso exista mais de um índice com o menor erro é tomado
-  um índice de forma aleatória dentre os índices de menor erro.
-*/
+/*Função de adição de ruído na entrada codificada*/
+string noise(string encoded_sequence,int err_percentage){
+  list<int> check;
+  for(int i = 0; i < (int)encoded_sequence.size(); i++) check.push_back(i);
+
+  /*Cálculo da quantidade de bits que serão modificados (utilizando arredondamento (inteiro mais próximo))*/
+  int quantity = ((double)(err_percentage*encoded_sequence.size())/100.) + 0.5;
+  while(quantity--){
+    auto it = check.begin();
+    advance(it,rand()%check.size());
+    encoded_sequence[*it] = (encoded_sequence[*it] == '0') ? '1' : '0';
+    check.erase(it);
+  }
+  return encoded_sequence;
+}
+
+/*Função utilizada para encontrar o índice no vetor de erros que corresponda à posição de menor erro.
+  Caso exista mais de um índice com o menor erro é tomado um índice de forma aleatória dentre os índices
+  de menor erro*/
 int lowest_error(vector<int> &vi){
   vector<int> ties;
   ties.push_back(0);
@@ -73,27 +87,26 @@ int lowest_error(vector<int> &vi){
     }
     else if(vi[i] == vi[ties[0]]) ties.push_back(i);
   }
-  return ties[0];
-  //if(ties.size() == 1) return ties[0];
-  //return ties[dices[ties.size()-1](generator)];
+  if(ties.size() == 1) return ties[0];
+  return ties[dices[ties.size()-1](generator)];
 }
 
-/*Decodificação.*/
+/*Função de decodificação*/
 string decode(string bit_sequence){
   string decoded = "";
   string prefix = bit_sequence.substr(0,2);
 
-  /*Passo 1.*/
+  /*Passo 1*/
   int err00 = diff(prefix,"00"), err10 = diff(prefix,"11");
   decoded += err00 < err10 ? '0': '1';
 
-  /*Passo 2.*/
+  /*Passo 2*/
   prefix = bit_sequence.substr(2,2);
   vector<int> diffs({diff(prefix,"00")+err00,diff(prefix,"11")+err00,diff(prefix,"10")+err10,diff(prefix,"01")+err10});
   int lowest_error_index = lowest_error(diffs);
   decoded += (lowest_error_index & 1) + '0';
 
-  /*Passo geral.*/
+  /*Passo geral*/
   /*[index]=state: [0]=00, [1]=10, [2]=01, [3]=11*/
   for(int i = 4; i < (int)bit_sequence.size(); i += 2){
     prefix = bit_sequence.substr(i,2);
@@ -109,28 +122,14 @@ string decode(string bit_sequence){
   return decoded.substr(0,decoded.size()-2);
 }
 
+/*Função para comparação de duas sequências de bits*/
 int comp(string a,string b){
   int total_diff = 0;
   for(int i = 0; i < (int)a.size(); i++) total_diff += (a[i] != b[i]);
   return total_diff;
 }
 
-/*Adição de ruído na entrada codificada.*/
-string noise(string encoded_sequence,int err_percentage){
-  list<int> check;
-  for(int i = 0; i < (int)encoded_sequence.size(); i++) check.push_back(i);
-
-  /* Cálculo da quantidade de bits que serão modificados (utilizando arredondamento (inteiro mais próximo))*/
-  int quantity = ((double)(err_percentage*encoded_sequence.size())/100.) + 0.5;
-  while(quantity--){
-    auto it = check.begin();
-    advance(it,rand()%check.size());
-    encoded_sequence[*it] = (encoded_sequence[*it] == '0') ? '1' : '0';
-    check.erase(it);
-  }
-  return encoded_sequence;
-}
-
+/* Função principal do programa*/
 int main(void){
   srand(time(NULL));
   for(int i = 0; i < 4; i++)
@@ -144,7 +143,7 @@ int main(void){
   init_table(emitted);
   init_table(next_state);
 
-  /*Construção da tabela de emissão.*/
+  /*Construção da tabela de emissões*/
   emitted["00"]['0'] = "00";
   emitted["00"]['1'] = "11";
   emitted["01"]['0'] = "11";
@@ -154,7 +153,7 @@ int main(void){
   emitted["11"]['0'] = "01";
   emitted["11"]['1'] = "10";
 
-  /*Construção da tabela de transição.*/
+  /*Construção da tabela de transições*/
   next_state["00"]['0'] = "00";
   next_state["00"]['1'] = "10";
   next_state["01"]['0'] = "00";
@@ -164,24 +163,25 @@ int main(void){
   next_state["11"]['0'] = "01";
   next_state["11"]['1'] = "11";
 
-  encoded_sequence = encode(bit_sequence);
+  /*Trecho utilizado para testes*/
+  /*encoded_sequence = encode(bit_sequence);
   vector<int> zeros(101,0);
-  for(int i = 0; i <= 10; i++){
+  for(int i = 0; i <= 15; i++){
     for(int j = 0; j < 100000; j++){
       disturbed_sequence = noise(encoded_sequence,i);
       decoded_sequence = decode(disturbed_sequence);
       zeros[i] += (comp(bit_sequence,decoded_sequence) == 0);
     }
     cout << i << " " << zeros[i]/1000.0 << "%" << endl;
-  }
-  /*
+  }*/
+
   encoded_sequence = encode(bit_sequence);
   disturbed_sequence = noise(encoded_sequence,err_percentage);
   decoded_sequence = decode(disturbed_sequence);
-  cout << "Initial sequence: " << bit_sequence << endl;
-  cout << "Encoded sequence: " << encoded_sequence << endl;
-  cout << "Disturbed sequence: " << disturbed_sequence << endl;
-  cout << "Decoded sequence: " << decoded_sequence << endl;
-  cout << "Difference between input and output: " << comp(bit_sequence,decoded_sequence) << endl;*/
+  cout << "Sequência inicial de bits:      " << bit_sequence << endl;
+  cout << "Sequência de bits codificada:   " << encoded_sequence << endl;
+  cout << "Sequência codificada com ruído: " << disturbed_sequence << endl;
+  cout << "Sequência decodificada:         " << decoded_sequence << endl;
+  cout << "Quantidade de bits diferentes entre a entrada original e a saída decodificada: " << comp(bit_sequence,decoded_sequence) << endl;
   return 0;
 }

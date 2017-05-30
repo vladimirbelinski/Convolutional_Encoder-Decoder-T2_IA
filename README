@@ -7,6 +7,13 @@
               --> README contém instruções relevantes à compilação, execução e uso do programa.
 */
 
+Entrada:               a entrada do programa deve ser informada em um arquivo sob extensão ".in" e salva na
+                       pasta /src/input. A entrada deve ser formada por duas linhas:
+                       - na primeira deve ser informado um valor inteiro entre 0 e 100, correspondente à
+                       porcentagem de ruído a ser aplicada;
+                       - na segunda deve ser informada uma sequência qualquer de zeros e uns, correspondente
+                       à sequência de bits original.
+
 Compilação e execução: em ambiente Linux, estando na pasta "src" e tendo os arquivos de entrada salvos na
                        pasta "input" e sob a extensão ".in", executar o comando "make run INPUT=filename",
                        onde filename corresponde ao nome do arquivo de entrada sem extensão.
